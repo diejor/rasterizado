@@ -1,31 +1,35 @@
+struct CameraUniform {
+    view_proj: mat4x4<f32>
+};
+@group(1) @binding(0)
+var<uniform> camera: CameraUniform;
+
+struct VertexInput {
+    @location(0) pos: vec3<f32>,
+    @location(1) tex_coords: vec2<f32>,
+}
+
 struct VertexOutput {
-    @builtin(position) my_pos: vec4<f32>,
-    @location(0) color: vec4<f32>,
+    @builtin(position) clip_pos: vec4<f32>,
+    @location(0) tex_coords: vec2<f32>,
 };
 
 @vertex
-fn vert_main(@builtin(vertex_index) v_index: u32) -> VertexOutput {
-    var pos = array(
-        vec2<f32>(0.0, 0.5),
-        vec2<f32>(-0.5, -0.5),
-        vec2<f32>(0.5, -0.5)
-    );
+fn vert_main(model: VertexInput) -> VertexOutput {
+    var out: VertexOutput;
 
-    var colors = array(
-        vec3(1.0, 0.0, 0.0),
-        vec3(0.0, 1.0, 0.0),
-        vec3(0.0, 0.0, 1.0)
-    );
+    out.clip_pos = camera.view_proj * vec4<f32>(model.pos, 1);
+    out.tex_coords = vec2<f32>(model.tex_coords.x, 1.0 - model.tex_coords.y);
 
-    var output: VertexOutput;
-
-    output.my_pos = vec4<f32>([v_index], 0.0, 1.0);
-    output.color = vec4<f32>(colors[v_index], 1.0);
-
-    return output;
+    return out;
 }
+
+@group(0) @binding(0)
+var t_diffuse: texture_2d<f32>;
+@group(0) @binding(1)
+var s_diffuse: sampler;
 
 @fragment
 fn frag_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    return in.color;
+    return textureSample(t_diffuse, s_diffuse, in.tex_coords);
 }
