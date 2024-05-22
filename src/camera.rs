@@ -199,7 +199,6 @@ impl CameraController {
         // modify the y coordinate directly.
         resultant.y += self.amount_up - self.amount_down;
 
-        resultant = resultant.normalize() * self.speed * dt;
         if resultant != Vector3::zero() {
             camera.position += resultant.normalize() * self.speed * dt;
         }
