@@ -48,8 +48,6 @@ struct State<'a> {
     instances: Vec<instance::Instance>,
     instance_buffer: wgpu::Buffer,
     egui: gui::EguiRenderer,
-    camera: camera::Camera,
-    projection: camera::Projection,
     camera_controller: camera::CameraController,
     camera_uniform: camera::CameraUniform,
     camera_buffer: wgpu::Buffer,
@@ -149,12 +147,12 @@ impl<'a> State<'a> {
             usage: wgpu::BufferUsages::VERTEX,
         });
 
-        let camera = camera::Camera::new((0.0, 5.0, 10.0), cgmath::Deg(-90.0), cgmath::Deg(-20.0));
+        let mut camera = camera::Camera::new((0.0, 5.0, 10.0), cgmath::Deg(-90.0), cgmath::Deg(-20.0));
         let projection =
             camera::Projection::new(config.width, config.height, cgmath::Deg(45.0), 0.1, 100.0);
         let mut camera_uniform = camera::CameraUniform::new();
         camera_uniform.update_view_proj(&camera, &projection);
-        let camera_controller = camera::CameraController::new(4.0, 1.0);
+        let camera_controller = camera::CameraController::new(4.0, 1.0, camera, projection);
 
         let camera_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Camera Buffer"),
@@ -259,8 +257,6 @@ impl<'a> State<'a> {
             instances,
             instance_buffer,
             egui,
-            camera,
-            projection,
             camera_controller,
             camera_uniform,
             camera_buffer,
@@ -316,14 +312,18 @@ impl<'a> State<'a> {
             pixels_per_point: self.window().scale_factor() as f32,
         };
 
-        self.egui.draw(
+        let uis: Vec<Box<dyn FnMut(&egui::Context)>> = vec![
+            Box::new(|ui| self.camera_controller.ui(ui)),
+        ];
+
+        self.egui.draw_multiple(
             &self.device,
             &self.queue,
             &mut encoder,
             &self.window,
             &view,
-            screen_descriptor,
-            |ui| gui_example::GUI(ui),
+            &screen_descriptor,
+            uis,
         );
 
         self.queue.submit(std::iter::once(encoder.finish()));
@@ -359,9 +359,9 @@ impl<'a> State<'a> {
     }
 
     fn update(&mut self, dt: instant::Duration) {
-        self.camera_controller.update_camera(&mut self.camera, dt);
+        self.camera_controller.update_camera(dt);
         self.camera_uniform
-            .update_view_proj(&self.camera, &self.projection);
+            .update_view_proj(&self.camera_controller.camera, &self.camera_controller.projection);
         self.queue.write_buffer(
             &self.camera_buffer,
             0,
@@ -376,7 +376,7 @@ impl<'a> State<'a> {
             self.config.width = new_size.width;
             self.config.height = new_size.height;
             self.surface.configure(&self.device, &self.config);
-            self.projection.resize(new_size.width, new_size.height);
+            self.camera_controller.projection.resize(new_size.width, new_size.height);
             self.depth_texture =
                 texture::Texture::create_depth_texture(&self.device, &self.config, "depth_texture");
         }

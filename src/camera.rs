@@ -47,6 +47,7 @@ impl Camera {
     }
 }
 
+#[derive(Debug)]
 pub struct Projection {
     aspect: f32,
     fovy: Rad<f32>,
@@ -96,6 +97,8 @@ impl CameraUniform {
 
 #[derive(Debug)]
 pub struct CameraController {
+    pub camera: Camera,
+    pub projection: Projection,
     amount_left: f32,
     amount_right: f32,
     amount_forward: f32,
@@ -110,8 +113,10 @@ pub struct CameraController {
 }
 
 impl CameraController {
-    pub fn new(speed: f32, sensitivity: f32) -> Self {
+    pub fn new(speed: f32, sensitivity: f32, camera: Camera, projection: Projection) -> Self {
         Self {
+            camera,
+            projection,
             amount_left: 0.0,
             amount_right: 0.0,
             amount_forward: 0.0,
@@ -127,33 +132,37 @@ impl CameraController {
     }
 
     pub fn process_keyboard(&mut self, event: &KeyEvent) -> bool {
-        let amount = if event.state == ElementState::Pressed { 1.0 } else { 0.0 };
+        let amount = if event.state == ElementState::Pressed {
+            1.0
+        } else {
+            0.0
+        };
         if let PhysicalKey::Code(keycode) = event.physical_key {
             match keycode {
                 KeyCode::KeyW | KeyCode::ArrowUp => {
                     self.amount_forward = amount;
                     true
-                },
+                }
                 KeyCode::KeyS | KeyCode::ArrowDown => {
                     self.amount_backward = amount;
                     true
-                },
+                }
                 KeyCode::KeyA | KeyCode::ArrowLeft => {
                     self.amount_left = amount;
                     true
-                },
+                }
                 KeyCode::KeyD | KeyCode::ArrowRight => {
                     self.amount_right = amount;
                     true
-                },
+                }
                 KeyCode::Space => {
                     self.amount_up = amount;
                     true
-                },
+                }
                 KeyCode::ShiftLeft => {
                     self.amount_down = amount;
                     true
-                },
+                }
                 _ => false,
             }
         } else {
@@ -174,11 +183,11 @@ impl CameraController {
         };
     }
 
-    pub fn update_camera(&mut self, camera: &mut Camera, dt: Duration) {
+    pub fn update_camera(&mut self, dt: Duration) {
         let dt = dt.as_secs_f32();
 
         // Move forward/backward and left/right
-        let (yaw_sin, yaw_cos) = camera.yaw.0.sin_cos();
+        let (yaw_sin, yaw_cos) = self.camera.yaw.0.sin_cos();
         let forward = Vector3::new(yaw_cos, 0.0, yaw_sin).normalize();
         let right = Vector3::new(-yaw_sin, 0.0, yaw_cos).normalize();
         let mut resultant = Vector3::zero();
@@ -189,10 +198,10 @@ impl CameraController {
         // Note: this isn't an actual zoom. The camera's position
         // changes when zooming. I've added this to make it easier
         // to get closer to an object you want to focus on.
-        let (pitch_sin, pitch_cos) = camera.pitch.0.sin_cos();
+        let (pitch_sin, pitch_cos) = self.camera.pitch.0.sin_cos();
         let scrollward =
             Vector3::new(pitch_cos * yaw_cos, pitch_sin, pitch_cos * yaw_sin).normalize();
-        resultant += scrollward * self.scroll * self.speed * self.sensitivity * dt;
+        resultant += scrollward * self.scroll;
         self.scroll = 0.0;
 
         // Move up/down. Since we don't use roll, we can just
@@ -200,12 +209,12 @@ impl CameraController {
         resultant.y += self.amount_up - self.amount_down;
 
         if resultant != Vector3::zero() {
-            camera.position += resultant.normalize() * self.speed * dt;
+            self.camera.position += resultant.normalize() * self.speed * dt;
         }
 
         // Rotate
-        camera.yaw += Rad(self.rotate_horizontal) * self.sensitivity * dt;
-        camera.pitch += Rad(-self.rotate_vertical) * self.sensitivity * dt;
+        self.camera.yaw += Rad(self.rotate_horizontal) * self.sensitivity * dt;
+        self.camera.pitch += Rad(-self.rotate_vertical) * self.sensitivity * dt;
 
         // If process_mouse isn't called every frame, these values
         // will not get set to zero, and the camera will rotate
@@ -214,10 +223,68 @@ impl CameraController {
         self.rotate_vertical = 0.0;
 
         // Keep the camera's angle from going too high/low.
-        if camera.pitch < -Rad(SAFE_FRAC_PI_2) {
-            camera.pitch = -Rad(SAFE_FRAC_PI_2);
-        } else if camera.pitch > Rad(SAFE_FRAC_PI_2) {
-            camera.pitch = Rad(SAFE_FRAC_PI_2);
+        if self.camera.pitch < -Rad(SAFE_FRAC_PI_2) {
+            self.camera.pitch = -Rad(SAFE_FRAC_PI_2);
+        } else if self.camera.pitch > Rad(SAFE_FRAC_PI_2) {
+            self.camera.pitch = Rad(SAFE_FRAC_PI_2);
         }
+    }
+
+    pub fn ui(&mut self, ui: &egui::Context) {
+        egui::Window::new("Camera Controller").show(ui, |ui| {
+            Self::ui_component(ui, |ui| {
+                ui.label("Transform");
+                ui.horizontal(|ui| {
+                    ui.label("Position:");
+                    ui.add(egui::DragValue::new(&mut self.camera.position.x).prefix("x: "));
+                    ui.add(egui::DragValue::new(&mut self.camera.position.y).prefix("y: "));
+                    ui.add(egui::DragValue::new(&mut self.camera.position.z).prefix("z: "));
+                });
+                ui.horizontal(|ui| {
+                    ui.label("Rotations:");
+                    ui.add(egui::DragValue::new(&mut self.camera.yaw.0).prefix("yaw: "));
+                    ui.add(egui::DragValue::new(&mut self.camera.pitch.0).prefix("pitch: "));
+                });
+            });
+
+            Self::ui_component(ui, |ui| {
+                ui.label("Projection");
+                ui.horizontal(|ui| {
+                    ui.label("Aspect:");
+                    ui.add(
+                        egui::Slider::new(&mut self.projection.aspect, 1.0..=2.0).text("Aspect"),
+                    );
+                });
+                ui.horizontal(|ui| {
+                    ui.label("Fovy:");
+                    ui.add(
+                        egui::Slider::new(&mut self.projection.fovy.0, 0.1..=FRAC_PI_2)
+                            .text("Fovy"),
+                    );
+                });
+                ui.horizontal(|ui| {
+                    ui.label("Znear:");
+                    ui.add(
+                        egui::Slider::new(&mut self.projection.znear, 0.1..=100.0).text("Znear"),
+                    );
+                });
+                ui.horizontal(|ui| {
+                    ui.label("Zfar:");
+                    ui.add(
+                        egui::Slider::new(&mut self.projection.zfar, 100.0..=1000.0).text("Zfar"),
+                    );
+                });
+            });
+
+            Self::ui_component(ui, |ui| {
+                ui.label("Movement");
+                ui.add(egui::Slider::new(&mut self.speed, 0.0..=100.0).text("Speed"));
+                ui.add(egui::Slider::new(&mut self.sensitivity, 0.0..=2.0).text("Sensitivity"));
+            });
+        });
+    }
+
+    pub fn ui_component(ui: &mut egui::Ui, run_component: impl FnOnce(&mut egui::Ui)) {
+        ui.group(|ui| ui.vertical_centered(run_component));
     }
 }
