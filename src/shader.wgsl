@@ -23,7 +23,7 @@ struct VertexOutput {
 };
 
 @vertex
-fn vert_main(model: VertexInput, instance: InstanceInput) -> VertexOutput {
+fn vs_main(model: VertexInput, instance: InstanceInput) -> VertexOutput {
     let model_matrix = mat4x4<f32>(
         instance.model_matrix0,
         instance.model_matrix1,
@@ -45,6 +45,6 @@ var t_diffuse: texture_2d<f32>;
 var s_diffuse: sampler;
 
 @fragment
-fn frag_main(in: VertexOutput) -> @location(0) vec4<f32> {
+fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     return textureSample(t_diffuse, s_diffuse, in.tex_coords);
 }

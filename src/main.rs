@@ -27,8 +27,13 @@ fn create_instances() -> Vec<instance::Instance> {
                     y: 0.0,
                     z: z as f32 - NUM_INSTANCES_PER_ROW as f32 / 2.0,
                 };
-                let rotation =
-                    cgmath::Quaternion::from_axis_angle(position.normalize(), cgmath::Deg(45.0));
+
+                let rotation = if position.is_zero() {
+                    cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_y(), cgmath::Deg(0.0))
+                } else {
+                    cgmath::Quaternion::from_axis_angle(position.normalize(), cgmath::Deg(45.0))
+                };
+
                 instance::Instance { position, rotation }
             })
         })
@@ -152,7 +157,7 @@ impl<'a> State<'a> {
             camera::Projection::new(config.width, config.height, cgmath::Deg(45.0), 0.1, 100.0);
         let mut camera_uniform = camera::CameraUniform::new();
         camera_uniform.update_view_proj(&camera, &projection);
-        let camera_controller = camera::CameraController::new(4.0, 1.0, camera, projection);
+        let camera_controller = camera::CameraController::new(15.0, 1.5, camera, projection);
 
         let camera_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Camera Buffer"),
@@ -184,7 +189,7 @@ impl<'a> State<'a> {
             label: Some("camera_bind_group"),
         });
 
-        let obj_model = resources::load_model("mushroom.obj", &device, &queue, &texture_bind_group_layout).await.unwrap();
+        let obj_model = resources::load_model("cube.obj", &device, &queue, &texture_bind_group_layout).await.unwrap();
 
         let shader = device.create_shader_module(wgpu::include_wgsl!("shader.wgsl"));
 
@@ -200,12 +205,12 @@ impl<'a> State<'a> {
             layout: Some(&render_pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &shader,
-                entry_point: "vert_main",
+                entry_point: "vs_main",
                 buffers: &[model::ModelVertex::desc(), instance::InstanceRaw::desc()],
             },
             fragment: Some(wgpu::FragmentState {
                 module: &shader,
-                entry_point: "frag_main",
+                entry_point: "fs_main",
                 targets: &[Some(wgpu::ColorTargetState {
                     format: config.format,
                     blend: Some(wgpu::BlendState::REPLACE),
@@ -284,7 +289,12 @@ impl<'a> State<'a> {
                     view: &view,
                     resolve_target: None,
                     ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color::WHITE),
+                        load: wgpu::LoadOp::Clear(wgpu::Color {
+                            r: 0.1,
+                            g: 0.2,
+                            b: 0.3,
+                            a: 1.0,
+                        }),
                         store: wgpu::StoreOp::Store,
                     },
                 })],

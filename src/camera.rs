@@ -230,10 +230,9 @@ impl CameraController {
         }
     }
 
-    pub fn ui(&mut self, ui: &egui::Context) {
-        egui::Window::new("Camera Controller").show(ui, |ui| {
-            Self::ui_component(ui, |ui| {
-                ui.label("Transform");
+    pub fn ui(&mut self, ctx: &egui::Context) {
+        egui::Window::new("Camera Controller").show(ctx, |ui| {
+            ui.collapsing("Transform", |ui| {
                 ui.horizontal(|ui| {
                     ui.label("Position:");
                     ui.add(egui::DragValue::new(&mut self.camera.position.x).prefix("x: "));
@@ -247,44 +246,34 @@ impl CameraController {
                 });
             });
 
-            Self::ui_component(ui, |ui| {
-                ui.label("Projection");
+            ui.collapsing("Projection", |ui| {
                 ui.horizontal(|ui| {
-                    ui.label("Aspect:");
                     ui.add(
                         egui::Slider::new(&mut self.projection.aspect, 1.0..=2.0).text("Aspect"),
                     );
                 });
                 ui.horizontal(|ui| {
-                    ui.label("Fovy:");
                     ui.add(
                         egui::Slider::new(&mut self.projection.fovy.0, 0.1..=FRAC_PI_2)
                             .text("Fovy"),
                     );
                 });
                 ui.horizontal(|ui| {
-                    ui.label("Znear:");
                     ui.add(
                         egui::Slider::new(&mut self.projection.znear, 0.1..=100.0).text("Znear"),
                     );
                 });
                 ui.horizontal(|ui| {
-                    ui.label("Zfar:");
                     ui.add(
                         egui::Slider::new(&mut self.projection.zfar, 100.0..=1000.0).text("Zfar"),
                     );
                 });
             });
 
-            Self::ui_component(ui, |ui| {
-                ui.label("Movement");
+            ui.collapsing("Movement", |ui| {
                 ui.add(egui::Slider::new(&mut self.speed, 0.0..=100.0).text("Speed"));
                 ui.add(egui::Slider::new(&mut self.sensitivity, 0.0..=2.0).text("Sensitivity"));
             });
         });
-    }
-
-    pub fn ui_component(ui: &mut egui::Ui, run_component: impl FnOnce(&mut egui::Ui)) {
-        ui.group(|ui| ui.vertical_centered(run_component));
     }
 }
