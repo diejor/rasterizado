@@ -1,7 +1,7 @@
 use std::io::{BufReader, Cursor};
 
 use cfg_if::cfg_if;
-use image::{codecs::hdr::HdrDecoder, ImageDecoder};
+use image::codecs::hdr::HdrDecoder;
 use wgpu::util::DeviceExt;
 
 use crate::{model, texture};

@@ -1,6 +1,5 @@
 mod camera;
 mod gui;
-mod gui_example;
 mod hdr;
 mod instance;
 mod light;
@@ -18,7 +17,7 @@ fn main() {
     pollster::block_on(run());
 }
 
-const NUM_INSTANCES_PER_ROW: u32 = 10;
+const NUM_INSTANCES_PER_ROW: u32 = 11;
 const SPACE_BETWEEN: f32 = 3.0;
 
 fn create_instances() -> Vec<instance::Instance> {
@@ -178,9 +177,9 @@ impl<'a> State<'a> {
          usage: wgpu::BufferUsages::VERTEX,
       });
 
-        let mut camera =
+        let camera =
             camera::Camera::new((0.0, 5.0, 10.0), cgmath::Deg(-90.0), cgmath::Deg(-20.0));
-      let projection =
+        let projection =
             camera::Projection::new(config.width, config.height, cgmath::Deg(70.0), 0.1, 100.0);
         let mut camera_uniform = camera::CameraUniform::new();
         camera_uniform.update_view_proj(&camera, &projection);
@@ -250,7 +249,7 @@ impl<'a> State<'a> {
         });
 
         let obj_model =
-            resources::load_model("mushroom.obj", &device, &queue, &texture_bind_group_layout)
+            resources::load_model("cube.obj", &device, &queue, &texture_bind_group_layout)
                 .await
                 .unwrap();
 
@@ -373,7 +372,7 @@ impl<'a> State<'a> {
             )
         };
 
-        let mut egui = gui::EguiRenderer::new(&device, config.format, None, 1, &window);
+        let egui = gui::EguiRenderer::new(&device, config.format, None, 1, &window);
 
         Self {
             window,
@@ -573,7 +572,7 @@ async fn run() {
     let mut state = State::new(&window).await;
     let mut last_render_time = std::time::Instant::now();
 
-    let result = event_loop.run(move |event, window_loop| match event {
+    let _ = event_loop.run(move |event, window_loop| match event {
         Event::UserEvent(_) => {
             state.window().request_redraw();
         }
