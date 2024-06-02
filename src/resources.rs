@@ -1,5 +1,6 @@
 use std::io::{BufReader, Cursor};
 
+use log::info;
 use cfg_if::cfg_if;
 use image::codecs::hdr::HdrDecoder;
 use wgpu::util::DeviceExt;
@@ -11,8 +12,9 @@ fn format_url(file_name: &str) -> reqwest::Url {
     let window = web_sys::window().unwrap();
     let location = window.location();
     let mut origin = location.origin().unwrap();
-    if !origin.ends_with("learn-wgpu") {
-        origin = format!("{}/learn-wgpu", origin);
+    info!("origin: {:?}", origin);
+    if !origin.ends_with("renderer") {
+        origin = format!("{}/renderer", origin);
     }
     let base = reqwest::Url::parse(&format!("{}/", origin,)).unwrap();
     base.join(file_name).unwrap()
@@ -93,8 +95,8 @@ pub async fn load_model(
 
     let mut materials = Vec::new();
     for m in obj_materials? {
-        let diffuse_texture = load_texture(&m.diffuse_texture.unwrap(), false, device, queue).await?;
-        let normal_texture = load_texture(&m.normal_texture.unwrap(), true, device, queue).await?;
+        let diffuse_texture = load_texture(&m.diffuse_texture, false, device, queue).await?;
+        let normal_texture = load_texture(&m.normal_texture, true, device, queue).await?;
 
         materials.push(model::Material::new(
             device,

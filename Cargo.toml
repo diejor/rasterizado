@@ -1,45 +1,56 @@
 [package]
-name = "triangle"
+name = "renderer"
 version = "0.1.0"
+authors = ["Diego Rodrigues (diejor)"]
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+crate-type = ["cdylib", "rlib"]
+name = "renderer"
+path = "src/lib.rs"
+
+[[bin]]
+name = "renderer_bin"
+path = "src/main.rs"
 
 [dependencies]
-anyhow = "1.0.83"
-bytemuck = { version = "1.15.0", features = ["derive"] }
-cfg-if = "1.0.0"
-cgmath = "0.18.0"
-egui = "0.27.2"
-egui-wgpu = "0.27.2"
-egui-winit = "0.27.2"
-env_logger = "0.11.3"
-fs_extra = "1.3.0"
-glob = "0.3.1"
-image = {version = "0.24", default-features = false, features = ["png", "jpeg", "hdr"]}
-instant = "0.1.13"
-log = "0.4.21"
-pollster = "0.3.0"
-tobj = { version = "4.0.2", features = ["async"] }
-wgpu = {version = "0.19.4", features = ["webgl"]}
+cfg-if = "1"
+anyhow = "1.0"
+bytemuck = { version = "1.12", features = [ "derive" ] }
+cgmath = "0.18"
+env_logger = "0.10"
+pollster = "0.3"
+log = "0.4"
+tobj = { version = "3.2", features = ["async"]}
+wgpu = { version = "0.19"}
 winit = { version = "0.29", features = ["rwh_05"] }
+instant = "0.1"
+egui = "0.27"
+egui-wgpu = "0.27.2"
+egui-winit = {version = "0.27.2", default-features = false}
+
+[dependencies.image]
+version = "0.24"
+default-features = false
+features = ["png", "jpeg", "hdr"]
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+reqwest = { version = "0.11" }
+console_error_panic_hook = "0.1"
+console_log = "1.0"
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+web-sys = { version = "0.3", features = [
+    "Document",
+    "Window",
+    "Element",
+    "Location",
+    "GpuCanvasContext",
+]}
+instant = { version = "0.1", features = [ "wasm-bindgen" ] }
+getrandom = { version = "0.2", features = ["js"] }
 
 [build-dependencies]
 anyhow = "1.0"
 fs_extra = "1.2"
 glob = "0.3"
-
-[lib]
-crate-type = ["cdylib", "rlib"]
-
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-console_error_panic_hook = "0.1.6"
-console_log = "1.0"
-wgpu = { version = "0.19", features = ["webgl"]}
-wasm-bindgen = "0.2"
-wasm-bindgen-futures = "0.4.30"
-web-sys = { version = "0.3", features = [
-    "Document",
-    "Window",
-    "Element",
-]}
