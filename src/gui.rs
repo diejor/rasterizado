@@ -4,6 +4,7 @@ use egui_wgpu::Renderer;
 use egui_wgpu::ScreenDescriptor;
 
 use egui_winit::{EventResponse, State};
+use log::info;
 use wgpu::{CommandEncoder, Device, Queue, TextureFormat, TextureView};
 use winit::event::WindowEvent;
 use winit::window::Window;
@@ -45,7 +46,7 @@ impl EguiRenderer {
         // egui_state.set_pixels_per_point(window.scale_factor() as f32);
         let egui_renderer = egui_wgpu::Renderer::new(
             device,
-            output_color_format,
+            output_color_format.add_srgb_suffix(),
             output_depth_format,
             msaa_samples,
         );

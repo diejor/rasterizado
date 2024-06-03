@@ -77,7 +77,6 @@ impl<'a> State<'a> {
         let size = window.inner_size();
 
         // The instance is a handle to out GPU
-        info!("Initializing GPU");
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             #[cfg(not(target_arch = "wasm32"))]
             backends: wgpu::Backends::PRIMARY,
@@ -85,9 +84,7 @@ impl<'a> State<'a> {
             backends: wgpu::Backends::BROWSER_WEBGPU,
             ..Default::default()
         });
-        info!("GPU Initialized, Instance: {:?}", instance);
         let surface = instance.create_surface(window).unwrap();
-        info!("Surface created");
 
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
@@ -255,7 +252,7 @@ impl<'a> State<'a> {
         });
 
         let obj_model =
-            resources::load_model("cube.obj", &device, &queue, &texture_bind_group_layout)
+            resources::load_model("mushroom.obj", &device, &queue, &texture_bind_group_layout)
                 .await
                 .unwrap();
 
@@ -355,7 +352,6 @@ impl<'a> State<'a> {
             )
         };
 
-        // NEW!
         let sky_pipeline = {
             let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Sky Pipeline Layout"),
@@ -581,9 +577,8 @@ pub async fn run() {
     let mut builder = winit::window::WindowBuilder::new();
     #[cfg(target_arch = "wasm32")]
     {
-        info!("Running on the web");
         use wasm_bindgen::JsCast;
-        use web_sys::{GpuCanvasContext, HtmlCanvasElement};
+        use web_sys::HtmlCanvasElement;
         use winit::platform::web::WindowBuilderExtWebSys;
         let canvas = web_sys::window()
             .unwrap()
@@ -594,17 +589,12 @@ pub async fn run() {
             .dyn_into::<web_sys::HtmlCanvasElement>()
             .unwrap();
 
-        info!("Canvas: {:?}", canvas.get_context("webgpu"));
-        let gpu_context = canvas.get_context("webgpu")
-            .unwrap()
-            .unwrap()
-            .dyn_into::<GpuCanvasContext>()
-            .expect("Failed to convert into context");
+        builder = builder.with_canvas(Some(canvas))
     }
     let window = builder.build(&event_loop).unwrap();
 
     let mut state = State::new(&window).await;
-    let mut last_render_time = std::time::Instant::now();
+    let mut last_render_time = instant::Instant::now();
 
     let _ = event_loop.run(move |event, window_loop| match event {
         Event::UserEvent(_) => {
@@ -616,7 +606,7 @@ pub async fn run() {
                 state.resize(physical_size);
             }
             WindowEvent::RedrawRequested => {
-                let now = std::time::Instant::now();
+                let now = instant::Instant::now();
                 let dt = now - last_render_time;
                 last_render_time = now;
 

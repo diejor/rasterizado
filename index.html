@@ -3,29 +3,111 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Renderer</title>
+    <style>
+        body,
+        html {
+            height: 100%;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #canvasContainer {
+            width: 80%;
+            height: 80%;
+            position: relative;
+            /* Needed for absolute positioning of the resize grip */
+            border: 2px solid #000000;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            /* Prevents extra space under the canvas */
+        }
+
+        #resizeGrip {
+            width: 10px;
+            height: 10px;
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background: #666;
+            cursor: se-resize;
+            /* Cursor indicates resizable area */
+        }
+    </style>
 </head>
 
 <body>
-    <div id="wasm-example">
+    <div id="canvasContainer">
         <canvas id="canvas"></canvas>
+        <div id="resizeGrip"></div> <!-- Resizing grip -->
     </div>
     <script type="module">
         import init from "./pkg/renderer.js";
+
+        const canvas = document.getElementById('canvas');
+        const container = document.getElementById('canvasContainer');
+        const resizeGrip = document.getElementById('resizeGrip');
+        let isResizing = false;
+
+        const initialDimensions = {
+            width: window.innerWidth * 0.99,
+            height: window.innerHeight * 0.99 
+        };
+
+        function setInitialDimensions() {
+            // Set initial dimensions based on the viewport size
+            container.style.width = `${initialDimensions.width}px`;
+            container.style.height = `${initialDimensions.height}px`;
+            resizeCanvas(); // Adjust canvas dimensions accordingly
+        }
+
+        function resizeCanvas() {
+            // Adjust the canvas dimensions to match the container's client dimensions
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+
+        resizeGrip.addEventListener('mousedown', function (e) {
+            isResizing = true;
+            e.preventDefault(); // Prevent default dragging behavior
+        });
+
+        window.addEventListener('mousemove', function (e) {
+            if (isResizing) {
+                const maxX = initialDimensions.width // Maximum X based on viewport width
+                const maxY = initialDimensions.height; // Maximum Y based on viewport height
+
+                // Calculate new dimensions but do not exceed the window boundaries
+                let newWidth = Math.min(e.clientX - container.getBoundingClientRect().left, maxX - container.getBoundingClientRect().left);
+                let newHeight = Math.min(e.clientY - container.getBoundingClientRect().top, maxY - container.getBoundingClientRect().top);
+
+                // Apply the constrained dimensions to the container
+                container.style.width = `${newWidth}px`;
+                container.style.height = `${newHeight}px`;
+
+                resizeCanvas(); // Call resizeCanvas to adjust internal dimensions
+            }
+        });
+
+        window.addEventListener('mouseup', function () {
+            isResizing = false;
+        });
+
+        window.addEventListener('resize', setInitialDimensions);
+        document.addEventListener('DOMContentLoaded', setInitialDimensions);
+
         init().then(() => {
-            console.log("WASM Loaded");
+            console.log("Renderer initialized");
+            setInitialDimensions(); // Ensure initial dimensions are set after the renderer is initialized
         });
     </script>
-    <style>
-        body {
-            background-color: #444;
-        }
-        canvas {
-            background-color: black;
-        }
-    </style>
 </body>
 
 </html>
