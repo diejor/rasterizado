@@ -9,6 +9,7 @@ use crate::{model, texture};
 
 #[cfg(target_arch = "wasm32")]
 fn format_url(file_name: &str) -> reqwest::Url {
+    info!("Loading file: {}", file_name);
     let window = web_sys::window().unwrap();
     let location = window.location();
     let mut origin = location.origin().unwrap();
