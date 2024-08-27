@@ -252,11 +252,10 @@ impl<'a> State<'a> {
         });
 
         let obj_model =
-            resources::load_model("mushroom.obj", &device, &queue, &texture_bind_group_layout)
+            resources::load_model("cube.obj", &device, &queue, &texture_bind_group_layout)
                 .await
                 .unwrap();
 
-        // NEW!
         let hdr = hdr::HdrPipeline::new(&device, &config);
 
         let hdr_loader = resources::HdrLoader::new(&device);
@@ -543,8 +542,13 @@ impl<'a> State<'a> {
         self.window.request_redraw();
     }
 
-    pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
+    pub fn resize(&mut self, mut new_size: winit::dpi::PhysicalSize<u32>) {
         if new_size.width > 0 && new_size.height > 0 {
+            let clamp = winit::dpi::PhysicalSize {
+                width: new_size.width.min(2048),
+                height: new_size.height.min(2048),
+            };
+            new_size = clamp;
             self.size = new_size;
             self.config.width = new_size.width;
             self.config.height = new_size.height;
@@ -591,7 +595,8 @@ pub async fn run() {
 
         builder = builder.with_canvas(Some(canvas))
     }
-    let window = builder.build(&event_loop).unwrap();
+    let window = builder
+        .build(&event_loop).unwrap();
 
     let mut state = State::new(&window).await;
     let mut last_render_time = instant::Instant::now();
@@ -603,6 +608,7 @@ pub async fn run() {
         Event::WindowEvent { event, .. } => match event {
             WindowEvent::CloseRequested => window_loop.exit(),
             WindowEvent::Resized(physical_size) => {
+                println!("Resized to {:?}", physical_size);
                 state.resize(physical_size);
             }
             WindowEvent::RedrawRequested => {
