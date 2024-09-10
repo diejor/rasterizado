@@ -28,14 +28,14 @@ jobs:
         curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
     - name: Build with wasm-pack
-      run: wasm-pack build --target web
+      run: wasm-pack build --release --target web
 
     # Upload the pkg directory as an artifact
     - name: Upload GitHub Pages artifact
       uses: actions/upload-artifact@v4
       with:
         name: github-pages
-        path: ./pkg
+        path: ./
 
   deploy:
     needs: build
