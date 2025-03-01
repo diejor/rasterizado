@@ -253,7 +253,7 @@ impl CameraController {
             ui.collapsing("Projection", |ui| {
                 ui.horizontal(|ui| {
                     ui.add(
-                        egui::Slider::new(&mut self.projection.aspect, 1.0..=2.0).text("Aspect"),
+                        egui::Slider::new(&mut self.projection.aspect, 1.0..=5.0).text("Aspect"),
                     );
                 });
                 ui.horizontal(|ui| {

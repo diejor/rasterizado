@@ -22,27 +22,38 @@ use winit::{event::*, event_loop::*, window::*};
 const NUM_INSTANCES_PER_ROW: u32 = 11;
 const SPACE_BETWEEN: f32 = 3.0;
 
+//fn create_instances() -> Vec<instance::Instance> {
+//    (0..NUM_INSTANCES_PER_ROW)
+//        .flat_map(|z| {
+//            (0..NUM_INSTANCES_PER_ROW).map(move |x| {
+//                let position = SPACE_BETWEEN
+//                    * cgmath::Vector3 {
+//                        x: x as f32 - NUM_INSTANCES_PER_ROW as f32 / 2.0,
+//                        y: 0.0,
+//                        z: z as f32 - NUM_INSTANCES_PER_ROW as f32 / 2.0,
+//                    };
+//
+//                let rotation = if position.is_zero() {
+//                    cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_y(), cgmath::Deg(0.0))
+//                } else {
+//                    cgmath::Quaternion::from_axis_angle(position.normalize(), cgmath::Deg(45.0))
+//                };
+//
+//                instance::Instance { position, rotation }
+//            })
+//        })
+//        .collect()
+//}
+
 fn create_instances() -> Vec<instance::Instance> {
-    (0..NUM_INSTANCES_PER_ROW)
-        .flat_map(|z| {
-            (0..NUM_INSTANCES_PER_ROW).map(move |x| {
-                let position = SPACE_BETWEEN
-                    * cgmath::Vector3 {
-                        x: x as f32 - NUM_INSTANCES_PER_ROW as f32 / 2.0,
-                        y: 0.0,
-                        z: z as f32 - NUM_INSTANCES_PER_ROW as f32 / 2.0,
-                    };
-
-                let rotation = if position.is_zero() {
-                    cgmath::Quaternion::from_axis_angle(cgmath::Vector3::unit_y(), cgmath::Deg(0.0))
-                } else {
-                    cgmath::Quaternion::from_axis_angle(position.normalize(), cgmath::Deg(45.0))
-                };
-
-                instance::Instance { position, rotation }
-            })
-        })
-        .collect()
+    let position = cgmath::Vector3::new(0.0, 0.0, 0.0);
+    let rotation = cgmath::Quaternion::from_axis_angle(
+        cgmath::Vector3::unit_y(),
+        cgmath::Deg(0.0)
+    );
+    vec![
+        instance::Instance { position, rotation }
+    ]
 }
 
 struct State<'a> {
@@ -54,6 +65,7 @@ struct State<'a> {
     window: &'a Window,
     render_pipeline: wgpu::RenderPipeline,
     obj_model: model::Model,
+    light_model: model::Model,
     depth_texture: texture::Texture,
     instances: Vec<instance::Instance>,
     instance_buffer: wgpu::Buffer,
@@ -251,10 +263,26 @@ impl<'a> State<'a> {
             label: None,
         });
 
-        let obj_model =
-            resources::load_model("cube.obj", &device, &queue, &texture_bind_group_layout)
-                .await
-                .unwrap();
+        let obj_model = resources::load_model(
+            "mushroom.obj",
+            &device,
+            &queue,
+            &texture_bind_group_layout,
+        )
+        .await
+        .unwrap_or_else(|e| {
+            eprintln!("Failed to load model: {:?}", e);
+            std::process::exit(1);
+        });
+
+        let light_model = resources::load_model(
+            "cube.obj",
+            &device,
+            &queue,
+            &texture_bind_group_layout,
+        )
+        .await
+        .unwrap();
 
         let hdr = hdr::HdrPipeline::new(&device, &config);
 
@@ -380,6 +408,7 @@ impl<'a> State<'a> {
             size,
             render_pipeline,
             obj_model,
+            light_model,   
             depth_texture,
             instances,
             instance_buffer,
@@ -445,7 +474,7 @@ impl<'a> State<'a> {
             use crate::model::DrawLight;
             render_pass.set_pipeline(&self.light_render_pipeline);
             render_pass.draw_light_model(
-                &self.obj_model,
+                &self.light_model,
                 &self.camera_bind_group,
                 &self.light_bind_group,
             );
